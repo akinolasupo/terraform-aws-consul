@@ -30,11 +30,12 @@ terraform {
 # NOTE: This Terraform data source must return at least one AMI result or the entire template will fail. See
 # /_ci/publish-amis-in-new-account.md for more information.
 # ---------------------------------------------------------------------------------------------------------------------
-data "aws_ami" "consul" {
+
+data "aws_ami" "consul-client" {
   most_recent = true
 
   # If we change the AWS Account in which test are run, update this value.
-  owners = ["562637147889"]
+  owners = ["XXXXXXX"]
 
   filter {
     name   = "virtualization-type"
@@ -43,7 +44,29 @@ data "aws_ami" "consul" {
 
   filter {
     name   = "is-public"
-    values = ["true"]
+    values = ["false"]
+  }
+
+  filter {
+    name   = "name"
+    values = ["consul-amazon-*"]
+  }
+}
+
+data "aws_ami" "consul-server" {
+  most_recent = true
+
+  # If we change the AWS Account in which test are run, update this value.
+  owners = ["XXXXXXX"]
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  filter {
+    name   = "is-public"
+    values = ["false"]
   }
 
   filter {
@@ -70,7 +93,7 @@ module "consul_servers" {
   cluster_tag_key   = "${var.cluster_tag_key}"
   cluster_tag_value = "${var.cluster_name}"
 
-  ami_id    = "${var.ami_id == "" ? data.aws_ami.consul.image_id : var.ami_id}"
+  ami_id    = "${var.ami_id == "" ? data.aws_ami.consul-server.image_id : var.ami_id}"
   user_data = "${data.template_file.user_data_server.rendered}"
 
   vpc_id     = "${data.aws_vpc.default.id}"
@@ -118,7 +141,7 @@ module "consul_clients" {
   cluster_tag_key   = "consul-clients"
   cluster_tag_value = "${var.cluster_name}"
 
-  ami_id    = "${var.ami_id == "" ? data.aws_ami.consul.image_id : var.ami_id}"
+  ami_id    = "${var.ami_id == "" ? data.aws_ami.consul-client.image_id : var.ami_id}"
   user_data = "${data.template_file.user_data_client.rendered}"
 
   vpc_id     = "${data.aws_vpc.default.id}"
